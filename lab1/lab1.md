@@ -63,6 +63,41 @@
   PATH=/opt/sc-dt/riscv-gcc/bin:/opt/sc-dt/llvm/bin:/opt/sc-dt/tools/bin:/opt/sc-dt/riscv-gcc/bin:/opt/sc-dt/tools/bin:/opt/sc-dt/tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
   SC_GCC_PATH=/opt/sc-dt/riscv-gcc
   _=/usr/bin/env
-
-```
-Как можно видеть,после выполнения `env.sh` произошли изменения в переменных среды: было добавлено много новых переменных среды,а некоторые были изменены (например PATH). Команда `source` позволяет выполнить скрипт в текущем окружении оболочки.
+  ```
+  Как можно видеть, после выполнения `env.sh` произошли изменения в переменных среды: было добавлено много новых переменных среды,а некоторые были изменены (например PATH).
+  Команда ```source``` позволяет выполнить скрипт в текущем окружении оболочки.
+- Находясь внутри контейнера, склонировал репозиторий командой
+  ```
+  git clone https://github.com/riscv-technologies-lab/riscv-toolchain-labs.git
+  ```
+  Далее перешел в директорию ```02-toolchain``` и командой
+  ```
+  CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 make build
+  ```
+  собрал проект. Проверил создавшуюся папку `build`, в ней действительно находится файл `hello.elf` (можно было не делать, достаточно видеть сообщение `/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc  hello.c -o build/hello.elf`)
+  командой `CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS=-static make run-qemu` запустил на Qemu,     вывелось сообщение
+  ```/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -static hello.c -o build/hello.elf
+     /opt/sc-dt/tools/bin/qemu-riscv64 build/hello.elf
+     Hello, RISC-V!
+  ```
+  значит все работает успешно.
+  Теперь используя `export` сделал переменные `CC`, `QEMU_USER`, `CFLAGS` доступными для подпроцессов:
+  ```
+    export CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc
+    export QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64
+    export CFLAGS=-static
+  ```
+  Собрал проект:
+  ```
+    make build
+  ```
+  все выполнилось успешно, как и в прошлый раз.
+  
+  Запустил на Qemu:
+  ```
+    make run-qemu
+  ```
+  все также выполнилоь успешно.
+  
+  Т.о. можно видеть, что разница между обычным присваиванием значения и присваиванием значения с помощью `export` состоит в том, что у них разные области видимости, т.е. с помощью `export` нам не нужно каждый раз пробрасывать значение в наш Makefile, а достаточно просто один раз их определить и они будут видимыми для всех подпроцессов.
+  
