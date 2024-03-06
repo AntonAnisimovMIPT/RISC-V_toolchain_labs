@@ -1,3 +1,51 @@
+## Docker usage
+- Так как ранее на моей системе не был установлен Docker, то пришлось его установить и настроить:
+  ```
+  # Add Docker's official GPG key:
+  sudo apt-get update
+  sudo apt-get install ca-certificates curl
+  sudo install -m 0755 -d /etc/apt/keyrings
+  sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  sudo chmod a+r /etc/apt/keyrings/docker.asc
+  
+  # Add the repository to Apt sources:
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  sudo apt-get update
+  ```
+  ```
+  sudo apt-get install docker-ce \
+                     docker-ce-cli \
+                     containerd.io \
+                     docker-buildx-plugin \
+                     docker-compose-plugin
+  ```
+  После ввода ```sudo docker run hello-world``` вывелось сообщение о приветствии мира, значит все прошло успешно.
+  Также настроил возможность работы с докером, не прописывая всегда команду sudo:
+  ```
+  sudo groupadd docker
+  sudo usermod -aG docker $USER
+  ```
+  Перезашел в терминал и ввел:
+  ```
+  docker run hello-world
+  ```
+  Опять получил сообщение о приветсвии, значит все прошло успешно.
+- Извлек образ и запустил контейнер:
+  ```
+  docker run \
+    --interactive \
+    --tty \
+    --detach \
+    --env "TERM=xterm-256color" \
+    --mount type=bind,source="$(pwd)",target="$(pwd)" \
+    --name cpp \
+    --ulimit nofile=1024:1024 \
+    ghcr.io/riscv-technologies-lab/rv_tools_image:1.0.1
+  ```
+
 ## Glancing at your first toolchain
 - Перепроверил, что контейнер запущен. Для этого выполнил команду ```docker ps```.
 
@@ -229,4 +277,73 @@
   29 .debug_line_str 00000035  0000000000000000  0000000000000000  000012f4  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
   ```
-Как можно видеть, добавились новые заголовки секций (как мне кажется, они и отвечают за отладочную информацию (к тому же в них есть слово DEBUGGING)).
+  Как можно видеть, добавились новые заголовки секций (как мне кажется, они и отвечают за отладочную информацию (к тому же в них есть слово DEBUGGING)).
+- Собрал проект:
+  ```
+  CC=$SC_GCC_PATH/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS="-g -static" make build
+  ```
+  Подключился к qemu, застваил ее ждать подключения GDB к порту 1234:
+  ```
+  /opt/sc-dt/tools/bin/qemu-riscv64 -g 1234 build/hello.elf
+  ```
+  Открыл новое окно терминала, перешел в этот контейнер:
+  ```
+  docker exec -it cpp /bin/bash
+  ```
+  Подключился к qemu, используя GDB:
+  ```
+  /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gdb
+  ```
+  Что получилось успешно, судя по этому сообщению:
+  ```
+  GNU gdb (GDB) 13.2
+  Copyright (C) 2023 Free Software Foundation, Inc.
+  License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+  This is free software: you are free to change and redistribute it.
+  There is NO WARRANTY, to the extent permitted by law.
+  Type "show copying" and "show warranty" for details.
+  This GDB was configured as "--host=x86_64-pc-linux-gnu --target=riscv64-unknown-linux-gnu".
+  Type "show configuration" for configuration details.
+  For bug reporting instructions, please see:
+  <https://www.gnu.org/software/gdb/bugs/>.
+  Find the GDB manual and other documentation resources online at:
+      <http://www.gnu.org/software/gdb/documentation/>.
+  
+  For help, type "help".
+  Type "apropos word" to search for commands related to "word".
+  ```
+  Далее подключился к порту 1234, выставил брейкпоинт на main и продолжил:
+  ```
+  (gdb) target remote localhost:1234
+  Remote debugging using localhost:1234
+  Reading /root/riscv-toolchain-labs/labs/02-toolchain/build/hello.elf from remote target...
+  warning: File transfers from remote targets can be slow. Use "set sysroot" to access files locally instead.
+  Reading /root/riscv-toolchain-labs/labs/02-toolchain/build/hello.elf from remote target...
+  Reading symbols from target:/root/riscv-toolchain-labs/labs/02-toolchain/build/hello.elf...
+  0x0000000000010514 in _start ()
+  (gdb) b main
+  Breakpoint 1 at 0x105fa: file hello.c, line 2.
+  (gdb) continue
+  ```
+  В итоге в этом терминале получил вывод:
+  ```
+  Continuing.
+  
+  Breakpoint 1, main () at hello.c:2
+  2	int main() { printf("Hello, RISC-V!\n"); }
+  ```
+  Если еще раз нажать продолжить, то имеем:
+  ```
+  Continuing.
+  [Inferior 1 (process 201) exited normally]
+  ```
+  Также в первом изначальном окне терминала вывелось сообщение:
+  ```
+  Hello, RISC-V!
+  ```
+  Это еще раз подтверждает факт, что все правильно отработало.
+
+
+  
+
+  
