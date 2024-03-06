@@ -1,6 +1,6 @@
 ## Docker usage
 - Так как ранее на моей системе не был установлен Docker, то пришлось его установить и настроить:
-  ```
+  ```bash
   # Add Docker's official GPG key:
   sudo apt-get update
   sudo apt-get install ca-certificates curl
@@ -15,7 +15,7 @@
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
   sudo apt-get update
   ```
-  ```
+  ```bash
   sudo apt-get install docker-ce \
                      docker-ce-cli \
                      containerd.io \
@@ -24,17 +24,17 @@
   ```
   После ввода ```sudo docker run hello-world``` вывелось сообщение о приветствии мира, значит все прошло успешно.
   Также настроил возможность работы с докером, не прописывая всегда команду sudo:
-  ```
+  ```bash
   sudo groupadd docker
   sudo usermod -aG docker $USER
   ```
   Перезашел в терминал и ввел:
-  ```
+  ```bash
   docker run hello-world
   ```
   Опять получил сообщение о приветсвии, значит все прошло успешно.
 - Извлек образ и запустил контейнер:
-  ```
+  ```bash
   docker run \
     --interactive \
     --tty \
@@ -58,18 +58,18 @@
 
 - Теперь перешел в этот контейнер, выполнив ```docker exec -it cpp /bin/bash``` (открытие интерактивного сеанса внутри контейнера `cpp`, используя командную оболочку bash). Т.о. успешно вошел в контейнер под пользователем root ```root@55633b1fe706:~#```.
 - Чтобы просмотреть файлы в ```/opt/sc-dt/```, выполнил ```ls /opt/sc-dt/```. В результате:
-  ```
+  ```bash
   docs     env.sh  riscv-gcc      tools             workspace
   eclipse  llvm    start-scr-ide  vscode-extension
 
   ```
 - Запустил `source /opt/sc-dt/env.sh`. В результате:
-  ```
+  ```bash
   SC-DT environment
   Done!
   ```
 - Чтобы сравнить переменные среды до выполнения `env.sh` и после, то т.к. я уже выполнил этот скрипт и переменные среды изменились, мне пришлось создать еще один контейнер `cpp_env`, но там я не выполнян этот сркипт, а сразу командой `env` просмотрел переменные среды:
-  ```
+  ```bash
   HOSTNAME=60b75d7294f1
   SCDT_INSTALLATION_ROOT=/opt/sc-dt
   PWD=/root
@@ -86,7 +86,7 @@
   ```
   потом командой `exit` вышел из этого контейнера `cpp_env`, командой `docker stop cpp_env` остановил его, командой `docker rm cpp_env` удалил его.
 - После чего снова перешел в первый контейнер `cpp`, в котором я уже запускал `env.sh`. Командой `env` просмотрел текущие переменные среды:
-  ```
+  ```bash
   SC_CLANG_PATH=/opt/sc-dt/llvm
   HOSTNAME=55633b1fe706
   SC_QEMU_PATH=/opt/sc-dt/tools/bin
@@ -115,34 +115,35 @@
   Как можно видеть, после выполнения `env.sh` произошли изменения в переменных среды: было добавлено много новых переменных среды,а некоторые были изменены (например PATH).
   Команда ```source``` позволяет выполнить скрипт в текущем окружении оболочки.
 - Cклонировал репозиторий командой
-  ```
+  ```bash
   git clone https://github.com/riscv-technologies-lab/riscv-toolchain-labs.git
   ```
   Далее перешел в директорию ```02-toolchain``` и командой
-  ```
+  ```bash
   CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 make build
   ```
   собрал проект. Проверил создавшуюся папку `build`, в ней действительно находится файл `hello.elf` (можно было не делать, достаточно видеть сообщение `/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc  hello.c -o build/hello.elf`)
-  командой `CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS=-static make run-qemu` запустил на Qemu,     вывелось сообщение
-  ```/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -static hello.c -o build/hello.elf
+  командой `CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS=-static make run-qemu` запустил на Qemu, вывелось сообщение
+  ```bash
+  /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -static hello.c -o build/hello.elf
      /opt/sc-dt/tools/bin/qemu-riscv64 build/hello.elf
      Hello, RISC-V!
   ```
   значит все работает успешно.
   Теперь используя `export` сделал переменные `CC`, `QEMU_USER`, `CFLAGS` доступными для подпроцессов:
-  ```
+  ```bash
     export CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc
     export QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64
     export CFLAGS=-static
   ```
   Собрал проект:
-  ```
+  ```bash
     make build
   ```
   все выполнилось успешно, как и в прошлый раз.
   
   Запустил на Qemu:
-  ```
+  ```bash
     make run-qemu
   ```
   все также выполнилоь успешно.
@@ -150,7 +151,7 @@
   Т.о. можно видеть, что разница между обычным присваиванием значения и присваиванием значения с помощью `export` состоит в том, что у них разные области видимости, т.е. с помощью `export` нам не нужно каждый раз пробрасывать значение в наш Makefile, а достаточно просто один раз их определить и они будут видимыми для всех подпроцессов.
 ## Connecting with debugger
 - Просмотрел размер ранее скомпиллированного файла hello.elf:
-  ```
+  ```bash
   objdump -h hello.elf
   hello.elf:     file format elf64-little
 
@@ -208,7 +209,7 @@
 
   ```
 - Добавил значние `-g` к переменной `CFLAGS', снова собрал и сделал objdump:
-  ```
+  ```bash
   export CFLAGS="-g"
   make build
   objdump -h hello.elf
@@ -279,23 +280,23 @@
   ```
   Как можно видеть, добавились новые заголовки секций (как мне кажется, они и отвечают за отладочную информацию (к тому же в них есть слово DEBUGGING)).
 - Собрал проект:
-  ```
+  ```bash
   CC=$SC_GCC_PATH/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS="-g -static" make build
   ```
   Подключился к qemu, застваил ее ждать подключения GDB к порту 1234:
-  ```
+  ```bash
   /opt/sc-dt/tools/bin/qemu-riscv64 -g 1234 build/hello.elf
   ```
   Открыл новое окно терминала, перешел в этот контейнер:
-  ```
+  ```bash
   docker exec -it cpp /bin/bash
   ```
   Подключился к qemu, используя GDB:
-  ```
+  ```bash
   /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gdb
   ```
   Что получилось успешно, судя по этому сообщению:
-  ```
+  ```bash
   GNU gdb (GDB) 13.2
   Copyright (C) 2023 Free Software Foundation, Inc.
   License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
@@ -313,7 +314,7 @@
   Type "apropos word" to search for commands related to "word".
   ```
   Далее подключился к порту 1234, выставил брейкпоинт на main и продолжил:
-  ```
+  ```bash
   (gdb) target remote localhost:1234
   Remote debugging using localhost:1234
   Reading /root/riscv-toolchain-labs/labs/02-toolchain/build/hello.elf from remote target...
@@ -326,19 +327,19 @@
   (gdb) continue
   ```
   В итоге в этом терминале получил вывод:
-  ```
+  ```bash
   Continuing.
   
   Breakpoint 1, main () at hello.c:2
   2	int main() { printf("Hello, RISC-V!\n"); }
   ```
   Если еще раз нажать продолжить, то имеем:
-  ```
+  ```bash
   Continuing.
   [Inferior 1 (process 201) exited normally]
   ```
   Также в первом изначальном окне терминала вывелось сообщение:
-  ```
+  ```bash
   Hello, RISC-V!
   ```
   Это еще раз подтверждает факт, что все правильно отработало.
