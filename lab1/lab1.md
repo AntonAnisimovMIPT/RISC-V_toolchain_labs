@@ -22,7 +22,31 @@
                      docker-buildx-plugin \
                      docker-compose-plugin
   ```
-  После ввода ```sudo docker run hello-world``` вывелось сообщение о приветствии мира, значит все прошло успешно.
+  После ввода ```sudo docker run hello-world``` вывелось сообщение
+  ```
+  Hello from Docker!
+  This message shows that your installation appears to be working correctly.
+  
+  To generate this message, Docker took the following steps:
+   1. The Docker client contacted the Docker daemon.
+   2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+      (amd64)
+   3. The Docker daemon created a new container from that image which runs the
+      executable that produces the output you are currently reading.
+   4. The Docker daemon streamed that output to the Docker client, which sent it
+      to your terminal.
+  
+  To try something more ambitious, you can run an Ubuntu container with:
+   $ docker run -it ubuntu bash
+  
+  Share images, automate workflows, and more with a free Docker ID:
+   https://hub.docker.com/
+  
+  For more examples and ideas, visit:
+  https://docs.docker.com/get-started/
+
+  ```
+  значит все прошло успешно.
   Также настроил возможность работы с докером, не прописывая всегда команду sudo:
   ```bash
   sudo groupadd docker
@@ -208,7 +232,7 @@
 
 
   ```
-- Добавил значние `-g` к переменной `CFLAGS', снова собрал и сделал objdump:
+- Добавил значние `-g` к переменной `CFLAGS`, снова собрал и сделал objdump:
   ```bash
   export CFLAGS="-g"
   make build
@@ -343,6 +367,100 @@
   Hello, RISC-V!
   ```
   Это еще раз подтверждает факт, что все правильно отработало.
+## Major tasks
+- Создал Makefile:
+  ```Makefile
+  CC ?= 
+  QEMU_USER ?= 
+  CFLAGS ?= 
+  OPTIMIZATION_LEVEL ?= -O0
+  
+  BUILD_DIR := build
+  
+  .DEFAULT_GOAL := quadratic_equation_solver
+  
+  .PHONY: _build_dir quadratic_equation_solver clean build-docker
+  
+  _build_dir:
+  	@mkdir -p ${BUILD_DIR}
+  
+  quadratic_equation_solver: quadratic_equation_solver.c _build_dir
+  	${CC} ${CFLAGS} ${OPTIMIZATION_LEVEL} quadratic_equation_solver.c -o ${BUILD_DIR}/quadratic_equation_solver.elf -lm
+  
+  build: quadratic_equation_solver
+  
+  show: quadratic_equation_solver
+  	file ${BUILD_DIR}/quadratic_equation_solver.elf
+  
+  run: quadratic_equation_solver
+  	${BUILD_DIR}/quadratic_equation_solver.elf
+  
+  run-qemu: quadratic_equation_solver
+  	${QEMU_USER} ${BUILD_DIR}/quadratic_equation_solver.elf
+  	
+  run-qemu-gdb: quadratic_equation_solver
+  	${QEMU_USER} -g 1234 ${BUILD_DIR}/quadratic_equation_solver.elf
+  
+  clean:
+  	rm -r ${BUILD_DIR}
+  	
+  build-docker:
+  	docker stop quad_eq_sol || true # Если вдруг мы до этого уже делали build, то при создании еще одного контейнера с таким же именем будет ошибка, значит нужно остановить тезку, чтобы потом удалить.
+  	docker rm quad_eq_sol || true # А теперь и удалить.
+  	docker run \
+  	  --interactive \
+            --tty \
+            --detach \
+            --env "TERM=xterm-256color" \
+            --mount type=bind,source=$(shell pwd),target=$(shell pwd)  \
+            --name quad_eq_sol \
+            --ulimit nofile=1024:1024 \
+            --env "CC=${CC}" \
+            --env "QEMU_USER=${QEMU_USER}" \
+            --env "CFLAGS=${CFLAGS}" \
+            ghcr.io/riscv-technologies-lab/rv_tools_image:1.0.1 \
+            /bin/bash -c "make -C /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1 build && tail -f /dev/null"
+          
+  run-qemu-docker:
+  	docker start quad_eq_sol || true && \
+  	docker exec -it quad_eq_sol /bin/bash -c "make -C /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1 run-qemu"
+  
+  run-qemu-gdb-docker:
+  	docker start quad_eq_sol || true && \
+  	docker exec -it quad_eq_sol /bin/bash -c "make -C /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1 run-qemu-gdb"
+  ```
+  Протестировал работу командами:
+  - Сборки через докер:
+    ```
+    CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS="-g -static" make build-docker
+    ```
+    В итоге действительно собралась папка build с файлом quadratic_equation_solver.elf.
+- Cкомпиллировал ```quadratic_equation_solver.c``` с разными флагами оптимизации, используя тулчейн llvm и компиллятор clang:
+  ```bash
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/llvm/bin/clang -S -O0 -o quadratic_equation_solver_clang_O0.s quadratic_equation_solver.c 
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/llvm/bin/clang -S -O1 -o quadratic_equation_solver_clang_O1.s quadratic_equation_solver.c 
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/llvm/bin/clang -S -O2 -o quadratic_equation_solver_clang_O2.s quadratic_equation_solver.c 
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/llvm/bin/clang -S -O3 -o quadratic_equation_solver_clang_O3.s quadratic_equation_solver.c 
+  ```
+- Проделал ту же работу, но с тулчейном gnu, используя gcc:
+  ```bash
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -S -O0 -o quadratic_equation_solver_gcc_O0.s quadratic_equation_solver.c 
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -S -O1 -o quadratic_equation_solver_gcc_O1.s quadratic_equation_solver.c 
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -S -O2 -o quadratic_equation_solver_gcc_O2.s quadratic_equation_solver.c 
+  /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -S -O3 -o quadratic_equation_solver_gcc_O3.s quadratic_equation_solver.c
+  ```
+  (все полученные файлы находятся в основной папке этой лабораторной работы)
+- Попробовал проанализировать полученные ассемблерные файлы.
+  
+  Как можно видеть, у clang размер файлов больше, чем у gcc.
+
+  Так же у clang различаются файлы с только оптимизацией ```-O0``` и ```-O1```, в то время как ```-O1```, ```-O2```, ```-O3``` абсолютно одинаковые.
+  
+  У gcc ситуация поинтереснее: различаются все, кроме ```-O2``` и ```O3```.
+  
+  Возможно это связано с особенностью моего исходника и в более больших проектах различии посущественнее.
+
+
 
 
   
