@@ -92,7 +92,7 @@
   SC-DT environment
   Done!
   ```
-- Чтобы сравнить переменные среды до выполнения `env.sh` и после, то т.к. я уже выполнил этот скрипт и переменные среды изменились, мне пришлось создать еще один контейнер `cpp_env`, но там я не выполнян этот сркипт, а сразу командой `env` просмотрел переменные среды:
+- Чтобы сравнить переменные среды до выполнения `env.sh` и после, то т.к. я уже выполнил этот скрипт и переменные среды изменились, мне пришлось создать еще один контейнер `cpp_env`, но там я не выполнял этот сркипт, а сразу командой `env` просмотрел переменные среды:
   ```bash
   HOSTNAME=60b75d7294f1
   SCDT_INSTALLATION_ROOT=/opt/sc-dt
@@ -146,8 +146,7 @@
   ```bash
   CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 make build
   ```
-  собрал проект. Проверил создавшуюся папку `build`, в ней действительно находится файл `hello.elf` (можно было не делать, достаточно видеть сообщение `/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc  hello.c -o build/hello.elf`)
-  командой `CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS=-static make run-qemu` запустил на Qemu, вывелось сообщение
+  собрал проект. Проверил создавшуюся папку `build`, в ней действительно находится файл `hello.elf` (можно было не делать, достаточно видеть сообщение `/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc  hello.c -o build/hello.elf`), командой `CC=/opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc QEMU_USER=/opt/sc-dt/tools/bin/qemu-riscv64 CFLAGS=-static make run-qemu` запустил на Qemu, вывелось сообщение:
   ```bash
   /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -static hello.c -o build/hello.elf
      /opt/sc-dt/tools/bin/qemu-riscv64 build/hello.elf
