@@ -397,7 +397,7 @@
   /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -S -O2 -o quadratic_equation_solver_gcc_O2.s quadratic_equation_solver.c 
   /home/anton/Documents/RISC-V_Spring_2024/toolchain-labs/RISC-V_toolchain_labs/lab1# /opt/sc-dt/riscv-gcc/bin/riscv64-unknown-linux-gnu-gcc -S -O3 -o quadratic_equation_solver_gcc_O3.s quadratic_equation_solver.c
   ```
-  (все полученные файлы находятся в основной папке этой лабораторной работы)
+  (все полученные файлы находятся в папке Assemblers этой лабораторной работы)
 - Попробовал проанализировать полученные ассемблерные файлы.
   
   Как можно видеть, у clang размер файлов больше, чем у gcc.
